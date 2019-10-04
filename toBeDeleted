@@ -1,0 +1,231 @@
+String suiteName;
+	int passedCount;
+	int failedCount;
+	int skippedCount;
+	JFreeChart chart;
+	String text;
+	
+	
+	public static JFreeChart generatePieChart(int P,int F,int S) {
+		DefaultPieDataset dataSet = new DefaultPieDataset();
+		if(P>0){
+		dataSet.setValue("Passed", P);}
+		if(F>0){
+			dataSet.setValue("Failed" , F);}
+		if(S>0){
+			dataSet.setValue("Skipped" , S);}
+
+		JFreeChart chart = ChartFactory.createPieChart(
+				"Execution Result", dataSet, true, true, false); 
+		PiePlot plot = (PiePlot) chart.getPlot();
+		plot.setSectionPaint("Passed", Color.green);
+		plot.setSectionPaint("Failed", Color.red);
+		plot.setSectionPaint("Skipped", Color.pink);
+		PieSectionLabelGenerator gen = new StandardPieSectionLabelGenerator("{0}= {1} ({2})",new DecimalFormat("0"), new DecimalFormat("0%"));
+		
+	   plot.setLabelGenerator(gen);
+
+		return chart;
+	}
+	
+	
+	
+	
+	
+	
+	private Date getTime(long millis) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(millis);
+		return calendar.getTime();
+	}
+
+	@Override
+	public void generateReport(List<XmlSuite> xmlSuites, List<ISuite> suites, String outputDirectory) {
+		// TODO Auto-generated method stub
+		
+		Map<String,String> errors = new HashMap<String,String>() ;
+		
+		try {
+			Document document = new Document();
+			PdfWriter writer =PdfWriter.getInstance(document, new FileOutputStream("iTextHelloWorld.pdf"));
+
+			  document.open();
+			  
+			  Font font = FontFactory.getFont(FontFactory.COURIER, 24, BaseColor.BLACK);
+			  
+			  DateFormat df = new SimpleDateFormat("dd/MM/YYYY");
+			    String todayDate = df.format(new Date());
+		   Chunk chunk = new Chunk("Test Execution Report " + todayDate , font);
+			document.add(chunk);  
+			 document.add( Chunk.NEWLINE );
+			  document.add(new Paragraph("\n\n"));
+			
+			  
+			  
+		  PdfPTable table = new PdfPTable(4); // 3 columns.
+		  PdfPCell  cel = new PdfPCell(new Paragraph("Timestamp"));
+			PdfPCell cell1 = new PdfPCell(new Paragraph("Test Name"));
+        	PdfPCell cell3 = new PdfPCell(new Paragraph("Status"));
+        	PdfPCell cell2 = new PdfPCell(new Paragraph("Duration(Seconds)"));
+        	
+        	table.addCell(cell1);
+	        table.addCell(cell2);
+	        table.addCell(cell3);
+	        table.addCell(cel);
+			
+			
+			  //Iterating over each suite included in the test
+			  for (ISuite suite : suites) {
+			        
+			     //Following code gets the suite name
+			     suiteName = suite.getName();
+			        
+			     
+			     //Getting the results for the said suite
+			     Map<String, ISuiteResult> suiteResults = suite.getResults();
+			     for (ISuiteResult sr : suiteResults.values()) {
+			        ITestContext tc = sr.getTestContext();
+			        IResultMap passedTests =  tc.getPassedTests();
+			        IResultMap failedTests =  tc.getFailedTests();
+			        IResultMap skippedTests =  tc.getSkippedTests();
+			        if (passedTests.size() > 0) {
+			        for (ITestResult result : passedTests.getAllResults()) {
+			        	PdfPCell cell0 = new PdfPCell(new Paragraph(getTime(result.getStartMillis()).toString()));
+			           	PdfPCell cell4 = new PdfPCell(new Paragraph(result.getMethod().getDescription()));
+			        	PdfPCell cell6 = new PdfPCell(new Paragraph("Pass"));
+			        	PdfPCell cell5 = new PdfPCell(new Paragraph(Long.valueOf((result.getEndMillis()-result.getStartMillis())/1000).toString()));
+			        	cell6.setBackgroundColor(BaseColor.GREEN);
+			        	
+			        //	cell6.setBackgroundColor(BaseColor.GREEN);
+			        	table.addCell(cell4);
+				        table.addCell(cell5);
+				        table.addCell(cell6);
+				        table.addCell(cell0);
+				        
+                    }}
+			        if (failedTests.size() > 0) {
+				        for (ITestResult result : failedTests.getAllResults()) {
+				        	PdfPCell cell0 = new PdfPCell(new Paragraph(getTime(result.getStartMillis()).toString()));
+				           	PdfPCell cell7 = new PdfPCell(new Paragraph(result.getMethod().getDescription()));
+				        	PdfPCell cell9 = new PdfPCell(new Paragraph("Failed"));
+				        	PdfPCell cell8 = new PdfPCell(new Paragraph(Long.valueOf((result.getEndMillis()-result.getStartMillis())/1000).toString()));
+				        	errors.put(result.getMethod().getDescription(), result.getThrowable().toString());
+				      //  	cell7.setBackgroundColor(BaseColor.RED);
+				        	cell9.setBackgroundColor(BaseColor.RED);
+				  //      	cell9.setBackgroundColor(BaseColor.RED);
+				        	table.addCell(cell7);
+					        table.addCell(cell8);
+				            table.addCell(cell9);
+				            table.addCell(cell0);
+	                    }}
+			        
+			        if (skippedTests.size() > 0) {
+				        for (ITestResult result : skippedTests.getAllResults()) {
+				        	PdfPCell cell0 = new PdfPCell(new Paragraph(getTime(result.getStartMillis()).toString()));
+				           	PdfPCell cell6 = new PdfPCell(new Paragraph(result.getMethod().getDescription()));
+				        	PdfPCell cell8 = new PdfPCell(new Paragraph("Skipped"));
+				        	PdfPCell cell7 = new PdfPCell(new Paragraph(Long.valueOf((result.getEndMillis()-result.getStartMillis())/1000).toString()));
+				 //       	cell6.setBackgroundColor(BaseColor.PINK);
+				        	cell8.setBackgroundColor(BaseColor.PINK);
+				//        	cell8.setBackgroundColor(BaseColor.PINK);
+				        	table.addCell(cell6);
+					        table.addCell(cell7);
+					        table.addCell(cell8);
+					        table.addCell(cell0);
+	                    }
+			        
+			        
+			        }
+			        
+			        
+			        
+			       StringBuilder sb = new StringBuilder();
+			       passedCount= tc.getPassedTests().getAllResults().size();
+			       failedCount = tc.getFailedTests().getAllResults().size();
+			       skippedCount =   tc.getSkippedTests().getAllResults().size();
+			       sb.append( " Failed tests for suite '" + suiteName +
+			          "' is:" + tc.getFailedTests().getAllResults().size());
+			       sb.append( "Passed tests for suite '" + suiteName +
+					          "' is:" + tc.getPassedTests().getAllResults().size());
+			       sb.append( "Skipped tests for suite '" + suiteName +
+					          "' is:" + tc.getSkippedTests().getAllResults().size());
+			       
+			       text = sb.toString();
+			     }
+			      
+			  
+
+
+}
+			  
+			  
+			     PdfContentByte contentByte = writer.getDirectContent();
+			    
+			     	PdfTemplate template = contentByte.createTemplate(300, 300);
+			     	 contentByte.addTemplate(template,150,400);
+					Graphics2D graphics2d = template.createGraphicsShapes(300, 300);
+			    	Rectangle2D rectangle2d = new Rectangle2D.Double(0, 0, 300,300);
+			    	chart = generatePieChart(passedCount,failedCount,skippedCount);
+					chart.draw(graphics2d, rectangle2d);
+					
+					
+					graphics2d.dispose();
+					document.newPage();
+	        		
+	    
+
+
+	                 document.add(table);
+				         
+	                 document.add( Chunk.NEWLINE );
+					 document.add(new Paragraph("\n\n"));
+	                 
+	                 
+	                 // Adding Error Table to document 
+	                 
+					 if(failedCount>0) {
+	                 Paragraph errorPara = new Paragraph("                  The table below list the error detected during test failure ");
+	                 document.add(errorPara);
+			
+	                 document.add( Chunk.NEWLINE );
+					 document.add(new Paragraph("\n\n"));
+	                 
+	                 PdfPTable tableErrors = new PdfPTable(2); // 3 columns.
+	                 
+	                 PdfPCell cell13 = new PdfPCell(new Paragraph("Failed Test Name"));
+                     PdfPCell cell14 = new PdfPCell(new Paragraph("Error Description"));
+                     tableErrors.addCell(cell13);
+                     tableErrors.addCell(cell14);
+	                 
+	                 for (String testName : errors.keySet())  
+	                	 
+	                 { 
+	                     // search  for value 
+	                     String error = errors.get(testName); 
+	                     PdfPCell cell11 = new PdfPCell(new Paragraph(testName));
+	                     PdfPCell cell12 = new PdfPCell(new Paragraph(error));
+	                     tableErrors.addCell(cell11);
+	                     tableErrors.addCell(cell12);
+	                 } 
+			          
+	           
+	                 document.add(tableErrors);
+					
+					 }
+					
+					 document.add( Chunk.NEWLINE );
+					//  Chunk chunk = new Chunk(text, font);
+					  Paragraph pg = new Paragraph("This report is generated at "+ new Date());
+					  document.add( Chunk.NEWLINE );
+					  document.add(new Paragraph("\n\n"));
+					  document.add(pg);
+			
+			document.close();
+			
+		} catch (FileNotFoundException | DocumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+}
+	}
